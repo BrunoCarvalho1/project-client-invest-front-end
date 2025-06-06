@@ -7,12 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AllocationsTable } from "@/components/allocations/allocations-table";
 import { AllocationForm } from "@/components/allocations/allocation-form";
-import { Loader2, ArrowLeft, Edit, DollarSign, PlusCircle, PieChart } from "lucide-react";
+import { Loader2, ArrowLeft, Edit, PlusCircle, PieChart as PieChartIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { format } from "date-fns";
-import { PieChart as RechartsChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import {
   Dialog,
   DialogContent,
@@ -22,66 +21,75 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-// Add this export for static site generation
-// export async function generateStaticParams() {
-//   // In a real app, this would fetch from your API
-//   // For now, return an empty array since we're using client-side data
-//   return [];
-// }
-
 export default function AssetDetailsPage() {
   const params = useParams();
   const assetId = params?.id as string;
   const [open, setOpen] = useState(false);
-  
+
   const { data: asset, isLoading: isAssetLoading } = useAsset(assetId);
   const { data: clients, isLoading: isClientsLoading } = useClients();
-  
+
   const isLoading = isAssetLoading || isClientsLoading;
-  
+
+  // ✅ 1. LÓGICA DE PREPARAÇÃO DOS DADOS CORRIGIDA
+  // Usamos useMemo para evitar recálculos desnecessários a cada renderização
+  const { totalAllocated, chartData, tableAllocations } = useMemo(() => {
+    const allocations = asset?.allocations || [];
+    const clientList = clients || [];
+
+    // Calcula o total alocado somando as quantidades
+    const total = allocations.reduce((sum: any, alloc: { quantidade: any; }) => sum + (alloc.quantidade || 0), 0);
+
+    // Prepara os dados para o gráfico de pizza
+    const chart = allocations.map((alloc: { clientId: any; quantidade: any; }) => {
+      const client = clientList.find((c: { id: any; }) => c.id === alloc.clientId);
+      return {
+        name: client?.name || 'Cliente desconhecido',
+        value: alloc.quantidade || 0,
+      };
+    });
+
+    // Prepara os dados para a tabela, garantindo que o formato esteja correto
+    const tableData = allocations.map((alloc: { clientId: any; }) => {
+      const clientData = clientList.find((c: { id: any; }) => c.id === alloc.clientId);
+      return {
+        ...alloc,
+        ativo: asset,      // Usa o objeto 'asset' completo da página
+        cliente: clientData, // Adiciona o objeto 'cliente' completo
+      };
+    });
+
+    return { totalAllocated: total, chartData: chart, tableAllocations: tableData };
+
+  }, [asset, clients]);
+
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-6 flex items-center justify-center h-96">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="text-muted-foreground">Loading asset details...</p>
+          <p className="text-muted-foreground">Carregando detalhes do ativo...</p>
         </div>
       </div>
     );
   }
-  
+
   if (!asset) {
     return (
       <div className="container mx-auto py-6">
         <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md">
-          Asset not found
+          Ativo não encontrado
         </div>
       </div>
     );
   }
 
-  const allocations = asset.allocations || [];
-
-  if (!Array.isArray(allocations)) {
-    console.error("Asset allocations is not an array:", allocations);
-  }
-  
-  // Prepare chart data
-  const chartData = allocations?.map((allocation: { asset: { name: any; }; amount: any; }) => ({
-    name: allocation.asset?.name || 'Unknown Asset',
-    value: allocation.amount || 0,
-  })) || [];
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
   
   const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value);
-  };
-
-  // Filter only active clients
   const activeClients = clients?.filter((client: { status: string; }) => client.status === "active") || [];
 
   return (
@@ -93,34 +101,32 @@ export default function AssetDetailsPage() {
           </Link>
         </Button>
         <DashboardHeader
-          title={asset.name}
-          description={`Asset details and allocations`}
+          title={asset.nome} // Corrigido para 'nome'
+          description={`Detalhes e alocações do ativo`}
         />
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Asset Details</CardTitle>
+            <CardTitle className="text-xl">Detalhes do Ativo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Current Value</div>
-              <div className="text-xl font-bold">{formatCurrency(asset.currentValue)}</div>
+              <div className="text-sm text-muted-foreground">Valor Atual</div>
+              {/* ✅ 2. CORRIGIDO PARA USAR O CAMPO 'valor' DO ATIVO */}
+              <div className="text-xl font-bold">{formatCurrency(asset.valor)}</div>
             </div>
             <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Created on</div>
-              {/* <div>{format(new Date(asset.createdAt), "MMMM d, yyyy")}</div> */}
-            </div>
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Total Allocated</div>
-              <div className="text-xl font-bold">{formatCurrency(asset.totalAllocated)}</div>
+              <div className="text-sm text-muted-foreground">Total Alocado</div>
+              {/* ✅ 3. CORRIGIDO PARA USAR A VARIÁVEL CALCULADA */}
+              <div className="text-xl font-bold">{formatCurrency(totalAllocated)}</div>
             </div>
             <div className="pt-2">
               <Button variant="outline" asChild className="w-full">
                 <Link href={`/assets/${asset.id}/edit`}>
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit Asset
+                  Editar Ativo
                 </Link>
               </Button>
             </div>
@@ -129,26 +135,26 @@ export default function AssetDetailsPage() {
         
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle className="text-xl">Client Allocation</CardTitle>
+            <CardTitle className="text-xl">Alocação por Cliente</CardTitle>
             <CardDescription>
-              Distribution of this asset among clients
+              Distribuição deste ativo entre os clientes
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {allocations.length === 0 ? (
+            {chartData.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-                <PieChart className="h-12 w-12 mb-2 opacity-40" />
-                <p>No allocations yet</p>
+                <PieChartIcon className="h-12 w-12 mb-2 opacity-40" />
+                <p>Ainda não há alocações</p>
                 <Button variant="outline" className="mt-4" onClick={() => setOpen(true)}>
                   <PlusCircle className="h-4 w-4 mr-2" />
-                  Add First Allocation
+                  Adicionar primeira alocação
                 </Button>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={240}>
-                <RechartsChart>
+                <PieChart>
                   <Pie
-                    data={chartData}
+                    data={chartData} // ✅ 4. USANDO OS DADOS CORRIGIDOS PARA O GRÁFICO
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -164,10 +170,10 @@ export default function AssetDetailsPage() {
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value: number) => [formatCurrency(value), "Amount"]}
+                    formatter={(value: number) => [formatCurrency(value), "Valor Alocado"]}
                   />
                   <Legend />
-                </RechartsChart>
+                </PieChart>
               </ResponsiveContainer>
             )}
           </CardContent>
@@ -177,21 +183,21 @@ export default function AssetDetailsPage() {
       <Tabs defaultValue="allocations" className="space-y-4">
         <div className="flex items-center justify-between">
           <TabsList>
-            <TabsTrigger value="allocations">Allocations</TabsTrigger>
+            <TabsTrigger value="allocations">Alocações</TabsTrigger>
           </TabsList>
           
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button size="sm">
                 <PlusCircle className="h-4 w-4 mr-2" />
-                Add Allocation
+                Adicionar Alocação
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add Client Allocation</DialogTitle>
+                <DialogTitle>Adicionar Alocação de Cliente</DialogTitle>
                 <DialogDescription>
-                  Allocate {asset.name} to a client. This will create a new allocation record.
+                  Aloque {asset.nome} para um cliente.
                 </DialogDescription>
               </DialogHeader>
               {clients && (
@@ -199,7 +205,7 @@ export default function AssetDetailsPage() {
                   clients={activeClients} 
                   assets={[asset]} 
                   onSuccess={() => setOpen(false)}
-                  preselectedAssetId={asset.id}
+                  preselectedAssetId={String(asset.id)}
                 />
               )}
             </DialogContent>
@@ -208,7 +214,7 @@ export default function AssetDetailsPage() {
         
         <TabsContent value="allocations" className="space-y-4">
           <AllocationsTable 
-            allocations={allocations.map((a: any) => ({ ...a, asset: asset }))} 
+            allocations={tableAllocations} // ✅ 5. USANDO OS DADOS CORRIGIDOS PARA A TABELA
             showAssetColumn={false}
           />
         </TabsContent>
