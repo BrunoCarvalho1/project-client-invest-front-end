@@ -34,35 +34,39 @@ interface AllocationFormProps {
   preselectedAssetId?: string;
 }
 
-export function AllocationForm({ 
-  clients, 
-  assets, 
+export function AllocationForm({
+  clients,
+  assets,
   onSuccess,
   preselectedClientId,
   preselectedAssetId
 }: AllocationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createAllocation = useCreateAllocation();
-  
+
+  // Filter active clients first
+  const activeClients = clients.filter(client => client.status === "active");
+
   const form = useForm<AllocationFormValues>({
     resolver: zodResolver(allocationSchema),
     defaultValues: {
-      clientId: preselectedClientId || "",
-      assetId: preselectedAssetId || "",
-      amount: 0,
+      clienteId: preselectedClientId ? Number(preselectedClientId) : undefined,
+      ativoId: preselectedAssetId ? Number(preselectedAssetId) : undefined,
+      quantidade: 0,
     },
   });
-  
-  // Filter active clients only
-  const activeClients = clients.filter(client => client.status === "active");
-  
+
   async function onSubmit(data: AllocationFormValues) {
     setIsSubmitting(true);
-    
+
     try {
       await createAllocation.mutateAsync(data);
       toast.success("Allocation created successfully");
-      form.reset({ clientId: data.clientId, assetId: "", amount: 0 });
+      form.reset({ 
+        clienteId: data.clienteId, 
+        ativoId: 0, 
+        quantidade: 0 
+      });
       onSuccess?.();
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -71,22 +75,23 @@ export function AllocationForm({
       setIsSubmitting(false);
     }
   }
-  
-  const selectedAssetId = form.watch("assetId");
-  const selectedAsset = assets.find(asset => asset.id === selectedAssetId);
-  
+
+  const selectedAssetId = form.watch("ativoId");
+  // adicionado Number para garantir que o ID seja um número - retornar
+  const selectedAsset = assets.find(asset => Number(asset.id) === selectedAssetId);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
-          name="clientId"
+          name="clienteId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Client</FormLabel>
               <Select
-                onValueChange={field.onChange}
-                value={field.value}
+                onValueChange={(value) => field.onChange(Number(value))}
+                value={field.value?.toString()}
                 disabled={!!preselectedClientId}
               >
                 <FormControl>
@@ -96,7 +101,7 @@ export function AllocationForm({
                 </FormControl>
                 <SelectContent>
                   {activeClients.map(client => (
-                    <SelectItem key={client.id} value={client.id}>
+                    <SelectItem key={client.id} value={client.id.toString()}>
                       {client.name}
                     </SelectItem>
                   ))}
@@ -106,16 +111,16 @@ export function AllocationForm({
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
-          name="assetId"
+          name="ativoId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Asset</FormLabel>
               <Select
-                onValueChange={field.onChange}
-                value={field.value}
+                onValueChange={(value) => field.onChange(Number(value))}
+                value={field.value?.toString()}
                 disabled={!!preselectedAssetId}
               >
                 <FormControl>
@@ -125,7 +130,7 @@ export function AllocationForm({
                 </FormControl>
                 <SelectContent>
                   {assets.map(asset => (
-                    <SelectItem key={asset.id} value={asset.id}>
+                    <SelectItem key={asset.id} value={asset.id.toString()}>
                       {asset.nome} (${asset.valor.toLocaleString()})
                     </SelectItem>
                   ))}
@@ -135,10 +140,10 @@ export function AllocationForm({
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
-          name="amount"
+          name="quantidade"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Amount</FormLabel>
@@ -151,6 +156,7 @@ export function AllocationForm({
                     placeholder="0.00"
                     className="pl-8"
                     {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
                   />
                 </div>
               </FormControl>
@@ -163,7 +169,7 @@ export function AllocationForm({
             </FormItem>
           )}
         />
-        
+
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Create Allocation

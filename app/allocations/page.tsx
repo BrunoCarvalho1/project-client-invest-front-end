@@ -36,7 +36,7 @@ export default function AllocationsPage() {
   }
   
   // Filter only active clients
-  const activeClients = clients?.filter(client => client.status === "active") || [];
+  const activeClients = clients?.filter((client: { status: string; }) => client.status === "active") || [];
 
   return (
     <div className="container mx-auto py-6 space-y-6">

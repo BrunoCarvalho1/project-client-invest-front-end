@@ -10,11 +10,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
 // Add this export for static site generation
-export async function generateStaticParams() {
-  // In a real app, this would fetch from your API
-  // For now, return an empty array since we're using client-side data
-  return [];
-}
+// export async function generateStaticParams() {
+//   // In a real app, this would fetch from your API
+//   // For now, return an empty array since we're using client-side data
+//   return [];
+// }
 
 export default function EditAssetPage() {
   const params = useParams();

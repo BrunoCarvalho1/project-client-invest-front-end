@@ -12,9 +12,9 @@ export const assetSchema = z.object({
 });
 
 export const allocationSchema = z.object({
-  clientId: z.string().min(1, "Client is required"),
-  assetId: z.string().min(1, "Asset is required"),
-  amount: z.coerce.number().positive("Amount must be greater than 0"),
+  clienteId: z.coerce.number().positive("Client is required"),
+  ativoId: z.coerce.number().positive("Asset is required"),
+  quantidade: z.coerce.number().positive("Amount must be greater than 0"),
 });
 
 export type ClientFormValues = z.infer<typeof clientSchema>;

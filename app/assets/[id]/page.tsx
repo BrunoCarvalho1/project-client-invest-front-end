@@ -23,11 +23,11 @@ import {
 } from "@/components/ui/dialog";
 
 // Add this export for static site generation
-export async function generateStaticParams() {
-  // In a real app, this would fetch from your API
-  // For now, return an empty array since we're using client-side data
-  return [];
-}
+// export async function generateStaticParams() {
+//   // In a real app, this would fetch from your API
+//   // For now, return an empty array since we're using client-side data
+//   return [];
+// }
 
 export default function AssetDetailsPage() {
   const params = useParams();
@@ -59,12 +59,18 @@ export default function AssetDetailsPage() {
       </div>
     );
   }
+
+  const allocations = asset.allocations || [];
+
+  if (!Array.isArray(allocations)) {
+    console.error("Asset allocations is not an array:", allocations);
+  }
   
   // Prepare chart data
-  const chartData = asset.allocations.map((allocation) => ({
-    name: allocation.client.name,
-    value: allocation.amount,
-  }));
+  const chartData = allocations?.map((allocation: { asset: { name: any; }; amount: any; }) => ({
+    name: allocation.asset?.name || 'Unknown Asset',
+    value: allocation.amount || 0,
+  })) || [];
   
   const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
@@ -76,7 +82,7 @@ export default function AssetDetailsPage() {
   };
 
   // Filter only active clients
-  const activeClients = clients?.filter(client => client.status === "active") || [];
+  const activeClients = clients?.filter((client: { status: string; }) => client.status === "active") || [];
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -104,7 +110,7 @@ export default function AssetDetailsPage() {
             </div>
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">Created on</div>
-              <div>{format(new Date(asset.createdAt), "MMMM d, yyyy")}</div>
+              {/* <div>{format(new Date(asset.createdAt), "MMMM d, yyyy")}</div> */}
             </div>
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">Total Allocated</div>
@@ -129,7 +135,7 @@ export default function AssetDetailsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {asset.allocations.length === 0 ? (
+            {allocations.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
                 <PieChart className="h-12 w-12 mb-2 opacity-40" />
                 <p>No allocations yet</p>
@@ -150,7 +156,7 @@ export default function AssetDetailsPage() {
                     dataKey="value"
                     animationDuration={750}
                   >
-                    {chartData.map((entry, index) => (
+                    {chartData.map((entry: any, index: number) => (
                       <Cell 
                         key={`cell-${index}`} 
                         fill={COLORS[index % COLORS.length]} 
@@ -202,7 +208,7 @@ export default function AssetDetailsPage() {
         
         <TabsContent value="allocations" className="space-y-4">
           <AllocationsTable 
-            allocations={asset.allocations.map(a => ({ ...a, asset: asset }))} 
+            allocations={allocations.map((a: any) => ({ ...a, asset: asset }))} 
             showAssetColumn={false}
           />
         </TabsContent>

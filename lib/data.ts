@@ -2,7 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Client, Asset, Allocation, ClientStatus } from '@/types';
-import { clientsApi, assetsApi, allocationsApi } from './api';
+import api, { clientsApi, assetsApi, allocationsApi } from './api';
+import { AllocationFormValues } from './validation';
 
 // Client queries and mutations
 export const useClients = () => {
@@ -136,8 +137,12 @@ export const useCreateAllocation = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (allocation: Omit<Allocation, 'id' | 'percentage' | 'createdAt'>) => {
-      const response = await allocationsApi.create(allocation);
+    mutationFn: async (data: AllocationFormValues) => {
+      const response = await api.post('/allocations', {
+        clienteId: Number(data.clienteId),
+        ativoId: Number(data.ativoId),
+        quantidade: data.quantidade
+      });
       return response.data;
     },
     onSuccess: () => {
