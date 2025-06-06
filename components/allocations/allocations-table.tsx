@@ -23,10 +23,10 @@ import { format } from "date-fns";
 import { MoreHorizontal, Trash2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { ReactNode } from "react";
 
-// Interface corrigida com 'quantidade' como número
 interface ExtendedAllocation extends Allocation {
-  quantidade: number;
+  quantidade: ReactNode;
   cliente: Client;
   ativo: Asset;
 }
@@ -44,7 +44,6 @@ export function AllocationsTable({
 }: AllocationsTableProps) {
   const deleteAllocation = useDeleteAllocation();
 
-  // Este filtro agora funcionará, pois a API enviará 'cliente' e 'ativo'
   const validAllocations = allocations.filter(
     allocation => allocation.cliente && allocation.ativo
   );
@@ -60,15 +59,15 @@ export function AllocationsTable({
 
   const formatCurrency = (value: number | null | undefined) => {
     if (typeof value !== 'number') return 'N/A';
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-BR', { // Alterado para pt-BR
       style: 'currency',
-      currency: 'BRL', // Ajuste a moeda se necessário
+      currency: 'BRL', // Alterado para BRL, ajuste se necessário
     }).format(value);
   };
 
   return (
     <div className="rounded-md border">
-      {allocations.length > 0 && allocations.length !== validAllocations.length && (
+      {allocations.length !== validAllocations.length && (
         <div className="text-sm text-amber-600 p-2 bg-amber-50 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4" />
           <span>
@@ -82,9 +81,8 @@ export function AllocationsTable({
           <TableRow>
             {showClientColumn && <TableHead>Cliente</TableHead>}
             {showAssetColumn && <TableHead>Ativo</TableHead>}
-            <TableHead>Quantidade (Valor)</TableHead>
-            <TableHead>Valor Atual do Ativo</TableHead>
-            <TableHead>Data da Alocação</TableHead>
+            <TableHead>Quantidade</TableHead>
+            <TableHead>Valor do Ativo</TableHead>
             <TableHead className="w-[50px] text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
@@ -92,7 +90,6 @@ export function AllocationsTable({
           {validAllocations.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                {/* A lógica aqui agora diferencia corretamente entre não ter alocações e ter dados inválidos */}
                 {allocations.length === 0 ? "Nenhuma alocação encontrada." : "Nenhuma alocação válida para exibir."}
               </TableCell>
             </TableRow>
@@ -118,12 +115,8 @@ export function AllocationsTable({
                     </Link>
                   </TableCell>
                 )}
-                {/* Corrigido para formatar a quantidade como valor monetário */}
-                <TableCell>{formatCurrency(allocation.quantidade)}</TableCell>
+                <TableCell>{allocation.quantidade}</TableCell>
                 <TableCell>{formatCurrency(allocation.ativo.valor)}</TableCell>
-                <TableCell>
-                  {allocation.createdAt ? format(new Date(allocation.createdAt), "dd/MM/yyyy") : 'N/A'}
-                </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -134,7 +127,7 @@ export function AllocationsTable({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => handleDelete(allocation.id)} className="text-destructive focus:text-destructive cursor-pointer">
+                      <DropdownMenuItem onClick={() => handleDelete(allocation.id)} className="text-destructive focus:text-red-600 cursor-pointer">
                         <Trash2 className="h-4 w-4 mr-2" />
                         Deletar
                       </DropdownMenuItem>
