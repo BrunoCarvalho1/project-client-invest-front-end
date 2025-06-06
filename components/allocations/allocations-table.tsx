@@ -17,17 +17,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Allocation, Client, Asset } from "@/types"; // Supondo que seus tipos básicos estão corretos
+import { Allocation, Client, Asset } from "@/types";
 import { useDeleteAllocation } from "@/lib/data";
 import { format } from "date-fns";
 import { MoreHorizontal, Trash2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
-// Interface ajustada para corresponder aos dados da API
+// Interface corrigida com 'quantidade' como número
 interface ExtendedAllocation extends Allocation {
-  cliente: Client; // Alterado de 'client' para 'cliente'
-  ativo: Asset;    // Alterado de 'asset' para 'ativo'
+  quantidade: number;
+  cliente: Client;
+  ativo: Asset;
 }
 
 interface AllocationsTableProps {
@@ -43,45 +44,36 @@ export function AllocationsTable({
 }: AllocationsTableProps) {
   const deleteAllocation = useDeleteAllocation();
 
-  // Filtro ajustado para corresponder aos novos nomes de propriedade
+  // Este filtro agora funcionará, pois a API enviará 'cliente' e 'ativo'
   const validAllocations = allocations.filter(
     allocation => allocation.cliente && allocation.ativo
   );
 
-  const handleDelete = async (id: string | number) => { // Aceitar string ou number para o ID
+  const handleDelete = async (id: string | number) => {
     try {
-      await deleteAllocation.mutateAsync(String(id)); // Garantir que o ID seja string
-      toast.success("Allocation deleted successfully");
+      await deleteAllocation.mutateAsync(String(id));
+      toast.success("Alocação deletada com sucesso");
     } catch (error) {
-      toast.error("Failed to delete allocation");
+      toast.error("Falha ao deletar alocação");
     }
   };
 
-  const formatCurrency = (value: number) => {
-    // A API retorna 'quantidade: 0', talvez você queira mostrar o valor do ativo?
-    // Se a intenção é mostrar a quantidade, o nome 'formatCurrency' pode ser confuso.
-    // Por enquanto, vamos manter como está.
-    if (typeof value !== 'number') return 'N/A'; // Segurança extra
-    return new Intl.NumberFormat('en-US', {
+  const formatCurrency = (value: number | null | undefined) => {
+    if (typeof value !== 'number') return 'N/A';
+    return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'BRL', // Ajuste a moeda se necessário
     }).format(value);
   };
 
-  // Supondo que os tipos de Allocation, Client e Asset em /types estejam corretos.
-  // Seus dados da API têm 'id' como número, então ajustamos a chamada handleDelete.
-  // Seus dados da API têm 'quantidade' e não 'amount' ou 'percentage'.
-  // Ajustei o código abaixo para refletir os nomes de propriedade da sua API.
-
   return (
     <div className="rounded-md border">
-      {/* Aviso sobre alocações inválidas */}
-      {allocations.length !== validAllocations.length && (
+      {allocations.length > 0 && allocations.length !== validAllocations.length && (
         <div className="text-sm text-amber-600 p-2 bg-amber-50 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            <span>
-                Warning: {allocations.length - validAllocations.length} allocations are missing client or asset data.
-            </span>
+          <AlertTriangle className="h-4 w-4" />
+          <span>
+            Aviso: {allocations.length - validAllocations.length} alocações estão com dados de cliente ou ativo ausentes.
+          </span>
         </div>
       )}
 
@@ -90,17 +82,18 @@ export function AllocationsTable({
           <TableRow>
             {showClientColumn && <TableHead>Cliente</TableHead>}
             {showAssetColumn && <TableHead>Ativo</TableHead>}
-            <TableHead>Quantidade</TableHead>
-            <TableHead>Valor do Ativo</TableHead>
-            <TableHead>Criado em</TableHead>
-            <TableHead className="w-[80px]"></TableHead>
+            <TableHead>Quantidade (Valor)</TableHead>
+            <TableHead>Valor Atual do Ativo</TableHead>
+            <TableHead>Data da Alocação</TableHead>
+            <TableHead className="w-[50px] text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {validAllocations.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={showClientColumn && showAssetColumn ? 6 : 5} className="text-center h-24 text-muted-foreground">
-                {allocations.length === 0 ? "Nenhuma alocação encontrada." : "Nenhuma alocação válida encontrada (verifique os dados de cliente/ativo)."}
+              <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                {/* A lógica aqui agora diferencia corretamente entre não ter alocações e ter dados inválidos */}
+                {allocations.length === 0 ? "Nenhuma alocação encontrada." : "Nenhuma alocação válida para exibir."}
               </TableCell>
             </TableRow>
           ) : (
@@ -108,11 +101,10 @@ export function AllocationsTable({
               <TableRow key={allocation.id}>
                 {showClientColumn && (
                   <TableCell>
-                    {/* Verifique se a rota '/clients/' está correta */}
-                    <Link href={`/clients/${allocation.cliente!.id}`} className="font-medium hover:underline">
-                      {allocation.cliente!.name}
+                    <Link href={`/clients/${allocation.cliente.id}`} className="font-medium hover:underline">
+                      {allocation.cliente.name}
                     </Link>
-                    {allocation.cliente!.status === "inactive" && (
+                    {allocation.cliente.status === "inactive" && (
                       <span className="ml-2 inline-flex items-center" title="Cliente inativo">
                         <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
                       </span>
@@ -121,36 +113,28 @@ export function AllocationsTable({
                 )}
                 {showAssetColumn && (
                   <TableCell>
-                     {/* Verifique se a rota '/assets/' está correta */}
-                    <Link href={`/assets/${allocation.ativo!.id}`} className="hover:underline">
-                      {allocation.ativo!.nome}
+                    <Link href={`/assets/${allocation.ativo.id}`} className="hover:underline">
+                      {allocation.ativo.nome}
                     </Link>
                   </TableCell>
                 )}
+                {/* Corrigido para formatar a quantidade como valor monetário */}
+                <TableCell>{formatCurrency(allocation.quantidade)}</TableCell>
+                <TableCell>{formatCurrency(allocation.ativo.valor)}</TableCell>
                 <TableCell>
-                  {/* Exibindo o 'valor' que vem dentro do objeto 'ativo' */}
-                  {formatCurrency(allocation.ativo.valor)}
+                  {allocation.createdAt ? format(new Date(allocation.createdAt), "dd/MM/yyyy") : 'N/A'}
                 </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {/* Se a sua API não retorna 'createdAt' na alocação, você precisará ajustar aqui */}
-                  {/* Usando o 'createdAt' do cliente como fallback, se existir */}
-                  {allocation.createdAt ? format(new Date(allocation.createdAt), "MMM d, yyyy") : 'N/A'}
-                </TableCell>
-                <TableCell>
+                <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
+                        <span className="sr-only">Abrir menu</span>
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => handleDelete(allocation.id)}
-                      >
+                      <DropdownMenuItem onClick={() => handleDelete(allocation.id)} className="text-destructive focus:text-destructive cursor-pointer">
                         <Trash2 className="h-4 w-4 mr-2" />
                         Deletar
                       </DropdownMenuItem>
