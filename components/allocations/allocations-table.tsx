@@ -19,7 +19,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Allocation, Client, Asset } from "@/types";
 import { useDeleteAllocation } from "@/lib/data";
-import { format } from "date-fns";
 import { MoreHorizontal, Trash2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -59,9 +58,9 @@ export function AllocationsTable({
 
   const formatCurrency = (value: number | null | undefined) => {
     if (typeof value !== 'number') return 'N/A';
-    return new Intl.NumberFormat('pt-BR', { // Alterado para pt-BR
+    return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL', // Alterado para BRL, ajuste se necessário
+      currency: 'BRL',
     }).format(value);
   };
 

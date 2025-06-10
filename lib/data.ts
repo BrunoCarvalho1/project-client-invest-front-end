@@ -5,7 +5,6 @@ import { Client, Asset, Allocation, ClientStatus } from '@/types';
 import api, { clientsApi, assetsApi, allocationsApi } from './api';
 import { AllocationFormValues } from './validation';
 
-// Client queries and mutations
 export const useClients = () => {
   return useQuery({
     queryKey: ['clients'],
@@ -71,7 +70,6 @@ export const useUpdateClientStatus = () => {
   });
 };
 
-// Asset queries and mutations
 export const useAssets = () => {
   return useQuery({
     queryKey: ['assets'],
@@ -122,7 +120,6 @@ export const useUpdateAsset = () => {
   });
 };
 
-// Allocation queries and mutations
 export const useAllocations = () => {
   return useQuery({
     queryKey: ['allocations'],

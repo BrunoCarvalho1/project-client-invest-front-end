@@ -1,4 +1,3 @@
-// app/clients/[id]/page.tsx
 "use client";
 
 import { useClient, useAssets } from "@/lib/data";
@@ -28,12 +27,13 @@ export default function ClientDetailsPage() {
   const params = useParams();
   const clientId = params?.id as string;
   const [open, setOpen] = useState(false);
-  
+
   const { data: client, isLoading: isClientLoading } = useClient(clientId);
   const { data: assets, isLoading: isAssetsLoading } = useAssets();
-  
+
+
   const isLoading = isClientLoading || isAssetsLoading;
-  
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-6 flex items-center justify-center h-96">
@@ -44,7 +44,7 @@ export default function ClientDetailsPage() {
       </div>
     );
   }
-  
+
   if (!client) {
     return (
       <div className="container mx-auto py-6">
@@ -54,20 +54,20 @@ export default function ClientDetailsPage() {
       </div>
     );
   }
-  
-  // Prepare chart data
+
   const chartData = client.allocations?.map((allocation: { asset: { name: any; }; amount: any; }) => ({
     name: allocation.asset?.name || 'Unknown Asset',
     value: allocation.amount || 0,
   })) || [];
-  
+
   const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | undefined | null) => {
+    const num = Number(value || 0);
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(value);
+    }).format(num);
   };
 
   return (
@@ -83,7 +83,7 @@ export default function ClientDetailsPage() {
           description={client.email}
         />
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
@@ -109,7 +109,9 @@ export default function ClientDetailsPage() {
             </div>
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">Total Allocated</div>
-              <div className="text-xl font-bold">{formatCurrency(client.totalAllocated)}</div>
+              <div className="text-xl font-bold">
+                {formatCurrency(client.totalAllocated)}
+              </div>
             </div>
             <div className="pt-2">
               <Button variant="outline" asChild className="w-full">
@@ -121,60 +123,60 @@ export default function ClientDetailsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="md:col-span-2">
-        <CardHeader>
-          <CardTitle className="text-xl">Asset Allocation</CardTitle>
-          <CardDescription>
-            Distribution of investments across different assets
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {chartData.length === 0 ? (  // Agora usando chartData para a verificação
-            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-              <PieChart className="h-12 w-12 mb-2 opacity-40" />
-              <p>No allocations yet</p>
-              <Button variant="outline" className="mt-4" onClick={() => setOpen(true)}>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add First Allocation
-              </Button>
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={240}>
-              <RechartsChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  dataKey="value"
-                  animationDuration={750}
-                >
-                  {chartData.map((entry: any, index: number) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={COLORS[index % COLORS.length]} 
-                    />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value: number) => [formatCurrency(value), "Amount"]}
-                />
-                <Legend />
-              </RechartsChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
+          <CardHeader>
+            <CardTitle className="text-xl">Asset Allocation</CardTitle>
+            <CardDescription>
+              Distribution of investments across different assets
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {chartData.length === 0 ? ( 
+              <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                <PieChart className="h-12 w-12 mb-2 opacity-40" />
+                <p>No allocations yet</p>
+                <Button variant="outline" className="mt-4" onClick={() => setOpen(true)}>
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add First Allocation
+                </Button>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <RechartsChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    dataKey="value"
+                    animationDuration={750}
+                  >
+                    {chartData.map((entry: any, index: number) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number) => [formatCurrency(value), "Amount"]}
+                  />
+                  <Legend />
+                </RechartsChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
-      
+
       <Tabs defaultValue="allocations" className="space-y-4">
         <div className="flex items-center justify-between">
           <TabsList>
             <TabsTrigger value="allocations">Allocations</TabsTrigger>
           </TabsList>
-          
+
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button size="sm">
@@ -190,9 +192,9 @@ export default function ClientDetailsPage() {
                 </DialogDescription>
               </DialogHeader>
               {assets && (
-                <AllocationForm 
-                  clients={[client]} 
-                  assets={assets} 
+                <AllocationForm
+                  clients={[client]}
+                  assets={assets}
                   onSuccess={() => setOpen(false)}
                   preselectedClientId={client.id}
                 />
@@ -200,13 +202,13 @@ export default function ClientDetailsPage() {
             </DialogContent>
           </Dialog>
         </div>
-        
+
         <TabsContent value="allocations" className="space-y-4">
-          <AllocationsTable 
-            allocations={(client.allocations || []).map((a: any) => ({ 
-              ...a, 
-              client: client 
-            }))} 
+          <AllocationsTable
+            allocations={(client.alocacoes || []).map((alocacao: any) => ({
+              ...alocacao,
+              cliente: client 
+            }))}
             showClientColumn={false}
           />
         </TabsContent>

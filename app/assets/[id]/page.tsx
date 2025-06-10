@@ -31,16 +31,12 @@ export default function AssetDetailsPage() {
 
   const isLoading = isAssetLoading || isClientsLoading;
 
-  // ✅ 1. LÓGICA DE PREPARAÇÃO DOS DADOS CORRIGIDA
-  // Usamos useMemo para evitar recálculos desnecessários a cada renderização
   const { totalAllocated, chartData, tableAllocations } = useMemo(() => {
     const allocations = asset?.allocations || [];
     const clientList = clients || [];
 
-    // Calcula o total alocado somando as quantidades
     const total = allocations.reduce((sum: any, alloc: { quantidade: any; }) => sum + (alloc.quantidade || 0), 0);
 
-    // Prepara os dados para o gráfico de pizza
     const chart = allocations.map((alloc: { clientId: any; quantidade: any; }) => {
       const client = clientList.find((c: { id: any; }) => c.id === alloc.clientId);
       return {
@@ -48,14 +44,12 @@ export default function AssetDetailsPage() {
         value: alloc.quantidade || 0,
       };
     });
-
-    // Prepara os dados para a tabela, garantindo que o formato esteja correto
     const tableData = allocations.map((alloc: { clientId: any; }) => {
       const clientData = clientList.find((c: { id: any; }) => c.id === alloc.clientId);
       return {
         ...alloc,
-        ativo: asset,      // Usa o objeto 'asset' completo da página
-        cliente: clientData, // Adiciona o objeto 'cliente' completo
+        ativo: asset,
+        cliente: clientData,
       };
     });
 
@@ -101,7 +95,7 @@ export default function AssetDetailsPage() {
           </Link>
         </Button>
         <DashboardHeader
-          title={asset.nome} // Corrigido para 'nome'
+          title={asset.nome} 
           description={`Detalhes e alocações do ativo`}
         />
       </div>
@@ -114,13 +108,7 @@ export default function AssetDetailsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">Valor Atual</div>
-              {/* ✅ 2. CORRIGIDO PARA USAR O CAMPO 'valor' DO ATIVO */}
               <div className="text-xl font-bold">{formatCurrency(asset.valor)}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Total Alocado</div>
-              {/* ✅ 3. CORRIGIDO PARA USAR A VARIÁVEL CALCULADA */}
-              <div className="text-xl font-bold">{formatCurrency(totalAllocated)}</div>
             </div>
             <div className="pt-2">
               <Button variant="outline" asChild className="w-full">
@@ -154,7 +142,7 @@ export default function AssetDetailsPage() {
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie
-                    data={chartData} // ✅ 4. USANDO OS DADOS CORRIGIDOS PARA O GRÁFICO
+                    data={chartData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -179,46 +167,6 @@ export default function AssetDetailsPage() {
           </CardContent>
         </Card>
       </div>
-      
-      <Tabs defaultValue="allocations" className="space-y-4">
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="allocations">Alocações</TabsTrigger>
-          </TabsList>
-          
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Adicionar Alocação
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Adicionar Alocação de Cliente</DialogTitle>
-                <DialogDescription>
-                  Aloque {asset.nome} para um cliente.
-                </DialogDescription>
-              </DialogHeader>
-              {clients && (
-                <AllocationForm 
-                  clients={activeClients} 
-                  assets={[asset]} 
-                  onSuccess={() => setOpen(false)}
-                  preselectedAssetId={String(asset.id)}
-                />
-              )}
-            </DialogContent>
-          </Dialog>
-        </div>
-        
-        <TabsContent value="allocations" className="space-y-4">
-          <AllocationsTable 
-            allocations={tableAllocations} // ✅ 5. USANDO OS DADOS CORRIGIDOS PARA A TABELA
-            showAssetColumn={false}
-          />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }
